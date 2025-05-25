@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor Moduli Drag & Drop</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.5.0-beta4/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <style>
+    .module {
+      cursor: grab;
+      transition: all 0.2s;
+    }
+    .module:active {
+      cursor: grabbing;
+    }
+    .module:hover .module-controls {
+      opacity: 1;
+    }
+    .module-controls {
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .canvas-item {
+      position: relative;
+      transition: all 0.2s;
+    }
+    .canvas-item:hover .item-controls {
+      opacity: 1;
+    }
+    .item-controls {
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .preview-container {
+      transition: width 0.3s ease, height 0.3s ease;
+      margin: 0 auto;
+      border: 1px solid #ccc;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-center mb-8 text-indigo-700">Editor Moduli Drag & Drop</h1>
+    
+    <div class="flex flex-col md:flex-row gap-6">
+      <!-- Sidebar con moduli -->
+      <div class="w-full md:w-1/4 bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-xl font-semibold mb-4 text-indigo-600">Moduli Disponibili</h2>
+        <div id="modules-container" class="space-y-3">
+          <!-- Modulo immagine full-width -->
+          <div class="module bg-gray-50 p-3 rounded border border-gray-200" draggable="true" data-module-type="full-width-image">
+            <div class="flex justify-between items-center">
+              <span class="font-medium">Immagine Full-width</span>
+              <div class="module-controls flex space-x-1">
+                <button class="text-gray-500 hover:text-indigo-600 p-1" title="Aggiungi al canvas">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="mt-2 h-16 bg-gray-200 flex items-center justify-center rounded">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </div>
+          
+          <!-- Modulo split immagine/testo -->
+          <div class="module bg-gray-50 p-3 rounded border border-gray-200" draggable="true" data-module-type="split-image-text">
+            <div class="flex justify-between items-center">
+              <span class="font-medium">Split Immagine/Testo</span>
+              <div class="module-controls flex space-x-1">
+                <button class="text-gray-500 hover:text-indigo-600 p-1" title="Aggiungi al canvas">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="mt-2 h-16 bg-gray-200 flex rounded">
+              <div class="w-1/2 flex items-center justify-center border-r border-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div class="w-1/2 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Modulo 4 immagini -->
+          <div class="module bg-gray-50 p-3 rounded border border-gray-200" draggable="true" data-module-type="4-images">
+            <div class="flex justify-between items-center">
+              <span class="font-medium">4 Immagini</span>
+              <div class="module-controls flex space-x-1">
+                <button class="text-gray-500 hover:text-indigo-600 p-1" title="Aggiungi al canvas">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="mt-2 h-16 bg-gray-200 grid grid-cols-2 gap-1 p-1 rounded">
+              <div class="bg-gray-300 rounded flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div class="bg-gray-300 rounded flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div class="bg-gray-300 rounded flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div class="bg-gray-300 rounded flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Modulo carousel -->
+          <div class="module bg-gray-50 p-3 rounded border border-gray-200" draggable="true" data-module-type="carousel">
+            <div class="flex justify-between items-center">
+              <span class="font-medium">Carousel</span>
+              <div class="module-controls flex space-x-1">
+                <button class="text-gray-500 hover:text-indigo-600 p-1" title="Aggiungi al canvas">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="mt-2 h-16 bg-gray-200 flex items-center justify-center rounded relative">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <div class="absolute inset-x-0 flex justify-between px-2">
+                <div class="bg-white/70 rounded-full p-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </div>
+                <div class="bg-white/70 rounded-full p-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Modulo hotspot -->
+          <div class="module bg-gray-50 p-3 rounded border border-gray-200" draggable="true" data-module-type="hotspot">
+            <div class="flex justify-between items-center">
+              <span class="font-medium">Hotspot</span>
+              <div class="module-controls flex space-x-1">
+                <button class="text-gray-500 hover:text-indigo-600 p-1" title="Aggiungi al canvas">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="mt-2 h-16 bg-gray-200 flex items-center justify-center rounded relative">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <div class="absolute top-2 left-2">
+                <div class="bg-indigo-500 rounded-full h-4 w-4 animate-pulse"></div>
+              </div>
+              <div class="absolute bottom-2 right-2">
+                <div class="bg-indigo-500 rounded-full h-4 w-4 animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Modulo tabella -->
+          <div class="module bg-gray-50 p-3 rounded border border-gray-200" draggable="true" data-module-type="table">
+            <div class="flex justify-between items-center">
+              <span class="font-medium">Tabella</span>
+              <div class="module-controls flex space-x-1">
+                <button class="text-gray-500 hover:text-indigo-600 p-1" title="Aggiungi al canvas">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="mt-2 h-16 bg-gray-200 flex items-center justify-center rounded">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </div>
+          
+          <!-- Modulo FAQ -->
+          <div class="module bg-gray-50 p-3 rounded border border-gray-200" draggable="true" data-module-type="faq">
+            <div class="flex justify-between items-center">
+              <span class="font-medium">FAQ</span>
+              <div class="module-controls flex space-x-1">
+                <button class="text-gray-500 hover:text-indigo-600 p-1" title="Aggiungi al canvas">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="mt-2 h-16 bg-gray-200 flex flex-col justify-center p-2 rounded">
+              <div class="flex justify-between items-center border-b border-gray-300 pb-1 mb-1">
+                <span class="text-xs text-gray-500">Domanda 1</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-xs text-gray-500">Domanda 2</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Modulo testo+img esteso -->
+          <div class="module bg-gray-50 p-3 rounded border border-gray-200" draggable="true" data-module-type="extended-text-image">
+            <div class="flex justify-between items-center">
+              <span class="font-medium">Testo+Img Esteso</span>
+              <div class="module-controls flex space-x-1">
+                <button class="text-gray-500 hover:text-indigo-600 p-1" title="Aggiungi al canvas">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="mt-2 h-16 bg-gray-200 flex rounded">
+              <div class="w-1/3 flex items-center justify-center border-r border-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div class="w-2/3 flex flex-col justify-center p-1">
+                <div class="h-2 bg-gray-300 rounded mb-1"></div>
+                <div class="h-2 bg-gray-300 rounded mb-1"></div>
+                <div class="h-2 bg-gray-300 rounded w-2/3"></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Modulo video -->
+          <div class="module bg-gray-50 p-3 rounded border border-gray-200" draggable="true" data-module-type="video">
+            <div class="flex justify-between items-center">
+              <span class="font-medium">Video</span>
+              <div class="module-controls flex space-x-1">
+                <button class="text-gray-500 hover:text-indigo-600 p-1" title="Aggiungi al canvas">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="mt-2 h-16 bg-gray-200 flex items-center justify-center rounded">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Area di lavoro principale -->
+      <div class="w-full md:w-3/4">
+        <!-- Controlli anteprima -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+          <div class="flex flex-wrap justify-between items-center">
+            <h2 class="text-xl font-semibold text-indigo-600">Anteprima</h2>
+            <div class="flex space-x-3 mt-2 sm:mt-0">
+              <button id="desktop-preview" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Desktop
+              </button>
+              <button id="mobile-preview" class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                Mobile
+              </button>
+              <button id="export-preview" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Esporta PNG
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Canvas per l'anteprima -->
+        <div class="preview-container w-full max-w-[1464px] min-h-[600px] bg-white rounded-lg shadow-md p-4">
+          <div id="canvas" class="min-h-[500px]">
+            <div class="flex items-center justify-center h-full border-2 border-dashed border-gray-300 rounded-lg">
+              <div class="text-center p-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <h3 class="text-lg font-medium text-gray-600">Trascina qui i moduli</h3>
+                <p class="text-gray-500 mt-1">Oppure clicca sul pulsante "+" di un modulo per aggiungerlo</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Inizializza Sortable per i moduli nella sidebar
+      const modulesContainer = document.getElementById('modules-container');
+      new Sortable(modulesContainer, {
+        group: {
+          name: 'modules',
+          pull: 'clone',
+          put: false
+        },
+        sort: false,
+        animation: 150,
+        ghostClass: 'bg-indigo-100',
+        onClone: function(evt) {
+          const item = evt.item;
+          const clone = evt.clone;
+          
+          // Rimuovi i controlli dal clone per evitare duplicazioni
+          const controls = clone.querySelector('.module-controls');
+          if (controls) controls.remove();
+        }
+      });
+      
+      // Inizializza Sortable per il canvas
+      const canvas = document.getElementById('canvas');
+      new Sortable(canvas, {
+        group: {
+          name: 'modules',
+          pull: false,
+          put: true
+        },
+        animation: 150,
+        ghostClass: 'bg-indigo-100',
+        onAdd: function(evt) {
+          const item = evt.item;
+          const moduleType = item.getAttribute('data-module-type');
+          
+          // Converti il modulo trascinato in un elemento del canvas
+          convertToCanvasItem(item, moduleType);
+        }
+      });
+      
+      // Gestione dei pulsanti di anteprima
+      const desktopPreview = document.getElementById('desktop-preview');
+      const mobilePreview = document.getElementById('mobile-preview');
+      const previewContainer = document.querySelector('.preview-container');
+      
+      desktopPreview.addEventListener('click', function() {
+        previewContainer.style.width = '100%';
+        previewContainer.style.maxWidth = '1464px';
+        desktopPreview.classList.remove('bg-gray-200', 'text-gray-700');
+        desktopPreview.classList.add('bg-indigo-600', 'text-white');
+        mobilePreview.classList.remove('bg-indigo-600', 'text-white');
+        mobilePreview.classList.add('bg-gray-200', 'text-gray-700');
+      });
+      
+      mobilePreview.addEventListener('click', function() {
+        previewContainer.style.width = '600px';
+        previewContainer.style.maxWidth = '600px';
+        mobilePreview.classList.remove('bg-gray-200', 'text-gray-700');
+        mobilePreview.classList.add('bg-indigo-600', 'text-white');
+        desktopPreview.classList.remove('bg-indigo-600', 'text-white');
+        desktopPreview.classList.add('bg-gray-200', 'text-gray-700');
+      });
+      
+      // Gestione del pulsante di esportazione
+      const exportPreview = document.getElementById('export-preview');
+      exportPreview.addEventListener('click', function() {
+        html2canvas(canvas).then(function(canvas) {
+          const link = document.createElement('a');
+          link.download = 'anteprima.png';
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        });
+      });
+      
+      // Gestione dei pulsanti "+" nella sidebar
+      document.querySelectorAll('.module-controls button').forEach(button => {
+        button.addEventListener('click', function() {
+          const module = this.closest('.module');
+          const moduleType = module.getAttribute('data-module-type');
+          const clone = module.cloneNode(true);
+          
+          // Aggiungi il clone al canvas
+          canvas.appendChild(clone);
+          
+          // Converti il clone in un elemento del canvas
+          convertToCanvasItem(clone, moduleType);
+          
+          // Se è il primo elemento, rimuovi il messaggio vuoto
+          const emptyMessage = canvas.querySelector('.border-dashed');
+          if (emptyMessage) {
+            emptyMessage.remove();
+          }
+        });
+      });
+      
+      // Funzione per convertire un modulo in un elemento del canvas
+      function convertToCanvasItem(item, moduleType) {
+        // Rimuovi la classe module e aggiungi la classe canvas-item
+        item.classList.remove('module');
+        item.classList.add('canvas-item', 'mb-6', 'bg-white', 'border', 'border-gray-200', 'rounded-lg', 'shadow-sm');
+        
+        // Rimuovi gli attributi di trascinamento
+        item.removeAttribute('draggable');
+        
+        // Crea il contenuto dell'elemento in base al tipo
+        let content = '';
+        let uploadTargets = [];
+        
+        switch(moduleType) {
+          case 'full-width-image':
+            content = `
+              <div class="p-4">
+                <h3 class="text-lg font-medium mb-2">Immagine Full-width</h3>
+                <input type="text" class="w-full p-2 border border-gray-300 rounded mb-3" placeholder="Titolo">
+                <textarea class="w-full p-2 border border-gray-300 rounded mb-3" placeholder="Descrizione"></textarea>
+                <div class="bg-gray-100 p-4 rounded mb-3">
+                  <div id="preview-${Date.now()}" class="min-h-[200px] flex items-center justify-center">
+                    <p class="text-gray-500">Nessuna immagine caricata</p>
+                  </div>
+                </div>
+                <button class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700" data-target="preview-${Date.now()}">
+                  Carica immagine
+                </button>
+              </div>
+            `;
+            uploadTargets.push(`preview-${Date.now()}`);
+            break;
+            
+          case 'split-image-text':
+            content = `
+              <div class="p-4">
+                <h3 class="text-lg font-medium mb-2">Split Immagine/Testo</h3>
+                <div class="flex flex-col md:flex-row gap-4">
+                  <div class="w-full md:w-1/2">
+                    <div class="bg-gray-100 p-4 rounded mb-3">
+                      <div id="preview-${Date.now()}" class="min-h-[200px] flex items-center justify-center">
+                        <p class="text-gray-500">Nessuna immagine caricata</p>
+                      </div>
+                    </div>
+                    <button class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 w-full" data-target="preview-${Date.now()}">
+                      Carica immagine
+                    </button>
+                  </div>
+                  <div class="w-full md:w-1/2">
+                    <input type="text" class="w-full p-2 border border-gray-300 rounded mb-3" placeholder="Titolo">
+                    <textarea class="w-full p-2 border border-gray-300 rounded h-[200px]" placeholder="Testo"></textarea>
+                  </div>
+                </div>
+              </div>
+            `;
+            uploadTargets.push(`preview-${Date.now()}`);
+            break;
+            
+          case '4-images':
+            const previewIds = [Date.now(), Date.now()+1, Date.now()+2, Date.now()+3];
+            content = `
+              <div class="p-4">
+                <h3 class="text-lg font-medium mb-2">4 Immagini</h3>
+                <input type="text" class="w-full p-2 border border-gray-300 rounded mb-3" placeholder="Titolo sezione">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  ${previewIds.map((id, index) => `
+                    <div>
+                      <div class="bg-gray-100 p-2 rounded mb-2">
+                        <div id="preview-${id}" class="aspect-square flex items-center justify-center">
+                          <p class="text-gray-500">Immagine ${index+1}</p>
+                        </div>
+                      </div>
+                      <input type="text" class="w-full p-2 border border-gray-300 rounded mb-2" placeholder="Titolo">
+                      <textarea class="w-full p-2 border border-gray-300 rounded mb-2" placeholder="Descrizione" rows="2"></textarea>
+                      <button class="bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 w-full text-sm" data-target="preview-${id}">
+                        Carica immagine
+                      </button>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+            previewIds.forEach(id => uploadTargets.push(`preview-${id}`));
+            break;
+            
+          case 'carousel':
+            const carouselId = Date.now();
+            content = `
+              <div class="p-4">
+                <h3 class="text-lg font-medium mb-2">Carousel</h3>
+                <input type="text" class="w-full p-2 border border-gray-300 rounded mb-3" placeholder="Titolo carousel">
+                <div class="bg-gray-100 p-4 rounded mb-3 relative">
+                  <div id="preview-${carouselId}" class="min-h-[300px] flex items-center justify-center">
+                    <p class="text-gray-500">Carica immagini per il carousel</p>
+                  </div>
+                  <div class="absolute inset-x-0 top-1/2 transform -translate-y-1/2 flex justify-between px-4">
+                    <button class="bg-white/80 hover:bg-white rounded-full p-2 shadow">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button class="bg-white/80 hover:bg-white rounded-full p-2 shadow">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="flex justify-between">
+                  <button class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700" data-target="preview-${carouselId}">
+                    Carica immagine
+                  </button>
+                  <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">
+                    Gestisci slide
+                  </button>
+                </div>
+              </div>
+            `;
+            uploadTargets.push(`preview-${carouselId}`);
+            break;
+            
+          case 'hotspot':
+            const hotspotId = Date.now();
+            content = `
+              <div class="p-4">
+                <h3 class="text-lg font-medium mb-2">Hotspot</h3>
+                <input type="text" class="w-full p-2 border border-gray-300 rounded mb-3" placeholder="Titolo">
+                <div class="bg-gray-100 p-4 rounded mb-3 relative">
+                  <div id="preview-${hotspotId}" class="min-h-[300px] flex items-center justify-center">
+                    <p class="text-gray-500">Carica un'immagine per aggiungere hotspot</p>
+                  </div>
+                </div>
+                <div class="flex justify-between">
+                  <button class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700" data-target="preview-${hotspotId}">
+                    Carica immagine
+                  </button>
+                  <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">
+                    Aggiungi hotspot
+                  </button>
+                </div>
+              </div>
+            `;
+            uploadTargets.push(`preview-${hotspotId}`);
+            break;
+            
+          case 'table':
+            content = `
+              <div class="p-4">
+                <h3 class="text-lg font-medium mb-2">Tabella</h3>
+                <input type="text" class="w-full p-2 border border-gray-300 rounded mb-3" placeholder="Titolo tabella">
+                <div class="overflow-x-auto mb-3">
+                  <table class="min-w-full border border-gray-300">
+                    <thead>
+                      <tr class="bg-gray-100">
+                        <th class="border border-gray-300 p-2">Intestazione 1</th>
+                        <th class="border border-gray-300 p-2">Intestazione 2</th>
+                        <th class="border border-gray-300 p-2">Intestazione 3</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="border border-gray-300 p-2">Cella 1</td>
+                        <td class="border border-gray-300 p-2">Cella 2</td>
+                        <td class="border border-gray-300 p-2">Cella 3</td>
+                      </tr>
+                      <tr>
+                        <td class="border border-gray-300 p-2">Cella 4</td>
+                        <td class="border border-gray-300 p-2">Cella 5</td>
+                        <td class="border border-gray-300 p-2">Cella 6</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="flex space-x-2">
+                  <button class="bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300 text-sm">
+                    Aggiungi riga
+                  </button>
+                  <button class="bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300 text-sm">
+                    Aggiungi colonna
+                  </button>
+                </div>
+              </div>
+            `;
+            break;
+            
+          case 'faq':
+            content = `
+              <div class="p-4">
+                <h3 class="text-lg font-medium mb-2">FAQ</h3>
+                <input type="text" class="w-full p-2 border border-gray-300 rounded mb-3" placeholder="Titolo sezione FAQ">
+                <div class="space-y-3 mb-3">
+                  <div class="border border-gray-300 rounded">
+                    <div class="flex justify-between items-center p-3 cursor-pointer bg-gray-50">
+                      <input type="text" class="w-full bg-transparent border-none focus:outline-none" placeholder="Domanda 1">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                    <div class="p-3 border-t border-gray-300">
+                      <textarea class="w-full p-2 border border-gray-300 rounded" placeholder="Risposta 1" rows="3"></textarea>
+                    </div>
+                  </div>
+                  <div class="border border-gray-300 rounded">
+                    <div class="flex justify-between items-center p-3 cursor-pointer bg-gray-50">
+                      <input type="text" class="w-full bg-transparent border-none focus:outline-none" placeholder="Domanda 2">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                    <div class="p-3 border-t border-gray-300">
+                      <textarea class="w-full p-2 border border-gray-300 rounded" placeholder="Risposta 2" rows="3"></textarea>
+                    </div>
+                  </div>
+                </div>
+                <button class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                  Aggiungi domanda
+                </button>
+              </div>
+            `;
+            break;
+            
+          case 'extended-text-image':
+            const extendedId = Date.now();
+            content = `
+              <div class="p-4">
+                <h3 class="text-lg font-medium mb-2">Testo+Img Esteso</h3>
+                <div class="flex flex-col md:flex-row gap-4">
+                  <div class="w-full md:w-1/3">
+                    <div class="bg-gray-100 p-4 rounded mb-3">
+                      <div id="preview-${extendedId}" class="min-h-[200px] flex items-center justify-center">
+                        <p class="text-gray-500">Nessuna immagine caricata</p>
+                      </div>
+                    </div>
+                    <button class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 w-full" data-target="preview-${extendedId}">
+                      Carica immagine
+                    </button>
+                  </div>
+                  <div class="w-full md:w-2/3">
+                    <input type="text" class="w-full p-2 border border-gray-300 rounded mb-3" placeholder="Titolo">
+                    <textarea class="w-full p-2 border border-gray-300 rounded h-[200px]" placeholder="Testo esteso"></textarea>
+                  </div>
+                </div>
+              </div>
+            `;
+            uploadTargets.push(`preview-${extendedId}`);
+            break;
+            
+          case 'video':
+            const videoId = Date.now();
+            content = `
+              <div class="p-4">
+                <h3 class="text-lg font-medium mb-2">Video</h3>
+                <input type="text" class="w-full p-2 border border-gray-300 rounded mb-3" placeholder="Titolo video">
+                <div class="bg-gray-100 p-4 rounded mb-3">
+                  <div id="preview-${videoId}" class="min-h-[300px] flex items-center justify-center">
+                    <p class="text-gray-500">Nessun video caricato</p>
+                  </div>
+                </div>
+                <button class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700" data-target="preview-${videoId}">
+                  Carica video
+                </button>
+              </div>
+            `;
+            uploadTargets.push(`preview-${videoId}`);
+            break;
+        }
+        
+        // Aggiungi i controlli per l'elemento del canvas
+        const controls = `
+          <div class="item-controls absolute top-2 right-2 flex space-x-1 bg-white/90 rounded-lg shadow p-1">
+            <button class="text-gray-500 hover:text-indigo-600 p-1" title="Duplica" onclick="duplicateItem(this)">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </button>
+            <button class="text-gray-500 hover:text-indigo-600 p-1" title="Sposta su" onclick="moveItemUp(this)">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+              </svg>
+            </button>
+            <button class="text-gray-500 hover:text-indigo-600 p-1" title="Sposta giù" onclick="moveItemDown(this)">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <button class="text-red-500 hover:text-red-600 p-1" title="Elimina" onclick="removeItem(this)">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        `;
+        
+        // Imposta il contenuto dell'elemento
+        item.innerHTML = content + controls;
+        
+        // Se è il primo elemento, rimuovi il messaggio vuoto
+        const emptyMessage = canvas.querySelector('.border-dashed');
+        if (emptyMessage) {
+          emptyMessage.remove();
+        }
+      }
+      
+      // Integrazione Cloudinary
+      document.addEventListener("click", function(e) {
+        const el = e.target;
+        if (el.tagName === "BUTTON" && el.hasAttribute("data-target")) {
+          const targetId = el.getAttribute("data-target");
+          const preview = document.getElementById(targetId);
+          if (!preview) return;
+          
+          const module = el.closest(".canvas-item") || el.closest("[data-module-type]");
+          const type = module?.getAttribute("data-module-type") || "";
+          const isVideo = type.includes("video");
+          let cloudPath = isVideo ? "video" : "image", resize = "";
+          
+          if (!isVideo) {
+            if (type.includes("full-width")) resize = "w_1464,h_600,c_fill";
+            else if (type.includes("split")) resize = "w_650,h_650,c_fill";
+            else if (type.includes("4-images")) resize = "w_300,h_300,c_fill";
+            else if (type.includes("carousel") || type.includes("hotspot")) resize = "w_970,h_600,c_fill";
+            else if (type.includes("icon") || type.includes("table")) resize = "w_150,h_150,c_fill";
+          }
+          
+          const input = document.createElement("input");
+          input.type = "file";
+          input.accept = isVideo ? "video/*" : "image/*";
+          input.style.display = "none";
+          
+          input.onchange = function() {
+            const file = input.files[0], data = new FormData();
+            data.append("file", file);
+            data.append("upload_preset", "unsigned_upload");
+            
+            preview.innerHTML = "Caricamento...";
+            
+            fetch(`https://api.cloudinary.com/v1_1/dmiens6fk/${cloudPath}/upload`, {
+              method: "POST",
+              body: data
+            })
+            .then(res => res.json())
+            .then(resp => {
+              preview.innerHTML = "";
+              
+              const url = resize ? resp.secure_url.replace("/upload/", `/upload/${resize}/`) : resp.secure_url;
+              
+              if (isVideo) {
+                const v = document.createElement("video");
+                v.src = url;
+                v.controls = true;
+                v.style.width = "100%";
+                preview.appendChild(v);
+              } else {
+                const i = document.createElement("img");
+                i.src = url;
+                i.style.maxWidth = "100%";
+                preview.appendChild(i);
+              }
+            })
+            .catch(err => {
+              preview.innerHTML = "Errore";
+              console.error(err);
+            });
+          };
+          
+          document.body.appendChild(input);
+          input.click();
+        }
+      });
+    });
+    
+    // Funzioni per i controlli degli elementi del canvas
+    function duplicateItem(button) {
+      const item = button.closest('.canvas-item');
+      const clone = item.cloneNode(true);
+      item.parentNode.insertBefore(clone, item.nextSibling);
+    }
+    
+    function moveItemUp(button) {
+      const item = button.closest('.canvas-item');
+      const prev = item.previousElementSibling;
+      if (prev && !prev.classList.contains('border-dashed')) {
+        item.parentNode.insertBefore(item, prev);
+      }
+    }
+    
+    function moveItemDown(button) {
+      const item = button.closest('.canvas-item');
+      const next = item.nextElementSibling;
+      if (next) {
+        item.parentNode.insertBefore(next, item);
+      }
+    }
+    
+    function removeItem(button) {
+      const item = button.closest('.canvas-item');
+      item.remove();
+      
+      // Se non ci sono più elementi, mostra il messaggio vuoto
+      const canvas = document.getElementById('canvas');
+      if (canvas.children.length === 0) {
+        canvas.innerHTML = `
+          <div class="flex items-center justify-center h-full border-2 border-dashed border-gray-300 rounded-lg">
+            <div class="text-center p-6">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <h3 class="text-lg font-medium text-gray-600">Trascina qui i moduli</h3>
+              <p class="text-gray-500 mt-1">Oppure clicca sul pulsante "+" di un modulo per aggiungerlo</p>
+            </div>
+          </div>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>
