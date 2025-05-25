@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>A+ Premium Content Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+        :root {
+            --purple-tint: #C9B6E4;
+            --aqua-tint: #A8E6CF;
+            --peach-tint: #FFD3B6;
+            --pink-tint: #FFAAA5;
+        }
+        body {
+            font-family: 'Lato', sans-serif;
+            background-color: #f9f9f9;
+        }
+        .module {
+            transition: all 0.2s ease;
+            cursor: grab;
+        }
+        .module:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+        }
+        .module:active {
+            cursor: grabbing;
+        }
+        .canvas-area {
+            min-height: 500px;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(201, 182, 228, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(168, 230, 207, 0.1) 0%, transparent 20%);
+        }
+        .preview-desktop .canvas-content {
+            max-width: 1000px;
+        }
+        .preview-mobile .canvas-content {
+            max-width: 600px;
+        }
+        .preview-desktop {
+            background-color: rgba(201, 182, 228, 0.05);
+            border: 1px dashed var(--purple-tint);
+        }
+        .preview-mobile {
+            background-color: rgba(168, 230, 207, 0.05);
+            border: 1px dashed var(--aqua-tint);
+        }
+        .module-placeholder {
+            border: 2px dashed #ddd;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(0, 0, 0, 0.01),
+                rgba(0, 0, 0, 0.01) 10px,
+                rgba(0, 0, 0, 0.03) 10px,
+                rgba(0, 0, 0, 0.03) 20px
+            );
+        }
+        .module-in-canvas {
+            transition: all 0.3s ease;
+        }
+        .module-in-canvas:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .upload-area {
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(0, 0, 0, 0.01),
+                rgba(0, 0, 0, 0.01) 10px,
+                rgba(0, 0, 0, 0.03) 10px,
+                rgba(0, 0, 0, 0.03) 20px
+            );
+        }
+        .tooltip {
+            position: relative;
+        }
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 5px 10px;
+            background: #333;
+            color: white;
+            border-radius: 4px;
+            white-space: nowrap;
+            font-size: 12px;
+            z-index: 10;
+        }
+        .sidebar {
+            background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f5 100%);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        .sidebar::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, var(--purple-tint), var(--aqua-tint), var(--peach-tint), var(--pink-tint));
+        }
+        .module-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        .module-icon svg {
+            transition: all 0.3s ease;
+        }
+        .module:hover .module-icon {
+            transform: scale(1.1);
+        }
+        .module:hover .module-icon svg {
+            transform: scale(1.1);
+        }
+        .sidebar-title {
+            position: relative;
+            display: inline-block;
+        }
+        .sidebar-title::after {
+            content: "";
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--purple-tint), var(--aqua-tint));
+            border-radius: 3px;
+        }
+    </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+<div style="margin-bottom: 20px;">
+<button id="previewDesktop" style="margin-right: 10px;">Anteprima Desktop</button>
+<button id="previewMobile">Anteprima Mobile</button>
+</div>
+<div id="previewArea" style="display:none; margin-top: 20px; border: 1px solid #ccc; padding: 0;"></div>
+<div style="margin-top: 10px;">
+<button id="exportPreview">Esporta anteprima come PNG</button>
+</div>
+<!-- Header -->
+<header class="bg-white shadow-sm fixed top-0 left-0 right-0 z-10">
+<div class="container mx-auto px-4 py-3 flex justify-between items-center">
+<h1 class="text-2xl font-bold text-gray-800">A+ Premium Content Builder</h1>
+<div class="flex space-x-3">
+<button class="px-4 py-2 bg-white border-2 border-[#C9B6E4] text-[#7E57C2] rounded-lg hover:bg-[#C9B6E4] hover:text-white transition-colors" id="previewDesktop">
+                    Anteprima Desktop
+                </button>
+<button class="px-4 py-2 bg-white border-2 border-[#A8E6CF] text-[#4CAF50] rounded-lg hover:bg-[#A8E6CF] hover:text-white transition-colors" id="previewMobile">
+                    Anteprima Mobile
+                </button>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="container mx-auto pt-20 pb-10 px-4 flex flex-col md:flex-row gap-6">
+<!-- Sidebar -->
+<aside class="w-full md:w-1/4 p-4 sidebar">
+<h2 class="text-lg font-bold mb-4 text-gray-700 sidebar-title">Moduli Disponibili</h2>
+<p class="text-sm text-gray-500 mb-6">Clicca un modulo per inserirlo nel canvas</p>
+<div class="space-y-4">
+<!-- Module 1 -->
+<div class="module bg-white border border-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-all" data-module-type="full-width-image" draggable="true">
+<div class="flex items-center">
+<div class="module-icon bg-gradient-to-br from-[#C9B6E4] to-[#9C7BD0]">
+<svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<span class="ml-3 text-sm font-medium">Full Width Image</span>
+</div>
+</div>
+<!-- Module 2 -->
+<div class="module bg-white border border-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-all" data-module-type="full-width-video" draggable="true">
+<div class="flex items-center">
+<div class="module-icon bg-gradient-to-br from-[#A8E6CF] to-[#65D6A4]">
+<svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<span class="ml-3 text-sm font-medium">Full Width Video</span>
+</div>
+</div>
+<!-- Module 3 -->
+<div class="module bg-white border border-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-all" data-module-type="split-image-text" draggable="true">
+<div class="flex items-center">
+<div class="module-icon bg-gradient-to-br from-[#FFD3B6] to-[#FFAA7B]">
+<svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6h16M4 12h8m-8 6h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<span class="ml-3 text-sm font-medium">Split Image + Text</span>
+</div>
+</div>
+<!-- Module 4 -->
+<div class="module bg-white border border-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-all" data-module-type="four-images-text" draggable="true">
+<div class="flex items-center">
+<div class="module-icon bg-gradient-to-br from-[#FFAAA5] to-[#FF7F73]">
+<svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<span class="ml-3 text-sm font-medium">4 Images + Text</span>
+</div>
+</div>
+<!-- Module 5 -->
+<div class="module bg-white border border-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-all" data-module-type="carousel" draggable="true">
+<div class="flex items-center">
+<div class="module-icon bg-gradient-to-br from-[#C9B6E4] to-[#9C7BD0]">
+<svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<span class="ml-3 text-sm font-medium">Carousel (Slide)</span>
+</div>
+</div>
+<!-- Module 6 -->
+<div class="module bg-white border border-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-all" data-module-type="hotspot-image" draggable="true">
+<div class="flex items-center">
+<div class="module-icon bg-gradient-to-br from-[#A8E6CF] to-[#65D6A4]">
+<svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<span class="ml-3 text-sm font-medium">Hotspot Image</span>
+</div>
+</div>
+<!-- Module 7 -->
+<div class="module bg-white border border-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-all" data-module-type="comparison-table" draggable="true">
+<div class="flex items-center">
+<div class="module-icon bg-gradient-to-br from-[#FFD3B6] to-[#FFAA7B]">
+<svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<span class="ml-3 text-sm font-medium">Comparison Table</span>
+</div>
+</div>
+<!-- Module 8 -->
+<div class="module bg-white border border-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-all" data-module-type="faq" draggable="true">
+<div class="flex items-center">
+<div class="module-icon bg-gradient-to-br from-[#FFAAA5] to-[#FF7F73]">
+<svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<span class="ml-3 text-sm font-medium">FAQ / Q&amp;A</span>
+</div>
+</div>
+<!-- Module 9 -->
+<div class="module bg-white border border-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-all" data-module-type="extended-text-image" draggable="true">
+<div class="flex items-center">
+<div class="module-icon bg-gradient-to-br from-[#C9B6E4] to-[#9C7BD0]">
+<svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 6h16M4 12h16M4 18h7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<span class="ml-3 text-sm font-medium">Testo Esteso + Immagine</span>
+</div>
+</div>
+</div>
+<!-- Decorative elements -->
+<div class="absolute bottom-0 right-0 w-24 h-24 opacity-10 rounded-full bg-gradient-to-r from-[#C9B6E4] to-[#A8E6CF]"></div>
+<div class="absolute top-20 right-4 w-12 h-12 opacity-10 rounded-full bg-gradient-to-r from-[#FFD3B6] to-[#FFAAA5]"></div>
+</aside>
+<!-- Canvas Area -->
+<section class="w-full md:w-3/4 bg-white rounded-xl shadow-sm p-4 canvas-area" id="canvasArea">
+<div class="canvas-content mx-auto transition-all duration-300">
+<div class="flex flex-col items-center justify-center h-64 module-placeholder rounded-lg" id="emptyState">
+<svg class="h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"></path>
+</svg>
+<p class="text-gray-500 text-center">Trascina qui un modulo per iniziare</p>
+<p class="text-gray-400 text-sm mt-2">Modifica i contenuti direttamente nel modulo</p>
+</div>
+<div class="space-y-6" id="canvasModules"></div>
+</div>
+</section>
+</main>
+<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modules = document.querySelectorAll('.module');
+            const canvasArea = document.getElementById('canvasArea');
+            const emptyState = document.getElementById('emptyState');
+            const canvasModules = document.getElementById('canvasModules');
+            const previewDesktop = document.getElementById('previewDesktop');
+            const previewMobile = document.getElementById('previewMobile');
+            
+            let moduleCounter = 0;
+            let currentPreviewMode = 'desktop';
+
+            // Initialize drag and drop
+            modules.forEach(module => {
+                module.addEventListener('dragstart', handleDragStart);
+                module.addEventListener('click', handleModuleClick);
+            });
+
+            canvasArea.addEventListener('dragover', handleDragOver);
+            canvasArea.addEventListener('drop', handleDrop);
+
+            // Preview mode buttons
+            previewDesktop.addEventListener('click', () => setPreviewMode('desktop'));
+            previewMobile.addEventListener('click', () => setPreviewMode('mobile'));
+
+            function handleDragStart(e) {
+                e.dataTransfer.setData('text/plain', e.target.getAttribute('data-module-type'));
+                e.dataTransfer.effectAllowed = 'copy';
+            }
+
+            function handleDragOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+            }
+
+            function handleDrop(e) {
+                e.preventDefault();
+                const moduleType = e.dataTransfer.getData('text/plain');
+                addModuleToCanvas(moduleType);
+            }
+
+            function handleModuleClick(e) {
+                const moduleType = e.currentTarget.getAttribute('data-module-type');
+                addModuleToCanvas(moduleType);
+            }
+
+            function addModuleToCanvas(moduleType) {
+                // Hide empty state if it's the first module
+                if (canvasModules.children.length === 0) {
+                    emptyState.style.display = 'none';
+                }
+
+                // Create a new module in the canvas
+                const moduleId = `module-${moduleCounter++}`;
+                const moduleElement = createModuleElement(moduleType, moduleId);
+                
+                canvasModules.appendChild(moduleElement);
+                
+                // Add event listeners for the new module
+                setupModuleInteractions(moduleElement);
+            }
+
+            function createModuleElement(moduleType, moduleId) {
+                const moduleElement = document.createElement('div');
+                moduleElement.id = moduleId;
+                moduleElement.className = 'module-in-canvas bg-white border border-gray-200 rounded-lg p-4 shadow-sm';
+                moduleElement.setAttribute('data-module-type', moduleType);
+
+                // Create module content based on type
+                let moduleContent = '';
+                
+                switch(moduleType) {
+                    case 'full-width-image':
+                        moduleContent = createFullWidthImageModule();
+                        break;
+                    case 'full-width-video':
+                        moduleContent = createFullWidthVideoModule();
+                        break;
+                    case 'split-image-text':
+                        moduleContent = createSplitImageTextModule();
+                        break;
+                    case 'four-images-text':
+                        moduleContent = createFourImagesTextModule();
+                        break;
+                    case 'carousel':
+                        moduleContent = createCarouselModule();
+                        break;
+                    case 'hotspot-image':
+                        moduleContent = createHotspotImageModule();
+                        break;
+                    case 'comparison-table':
+                        moduleContent = createComparisonTableModule();
+                        break;
+                    case 'faq':
+                        moduleContent = createFAQModule();
+                        break;
+                    case 'extended-text-image':
+                        moduleContent = createExtendedTextImageModule();
+                        break;
+                    default:
+                        moduleContent = '<p>Modulo non riconosciuto</p>';
+                }
+
+                moduleElement.innerHTML = `
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-medium text-gray-700">${getModuleTitle(moduleType)}</h3>
+                        <div class="flex space-x-2">
+                            <button class="move-up-btn p-1 rounded hover:bg-gray-100" title="Sposta su">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            <button class="move-down-btn p-1 rounded hover:bg-gray-100" title="Sposta giù">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <button class="duplicate-btn p-1 rounded hover:bg-gray-100" title="Duplica">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                            </button>
+                            <button class="delete-btn p-1 rounded hover:bg-gray-100" title="Elimina">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="module-content">
+                        ${moduleContent}
+                    </div>
+                `;
+
+                return moduleElement;
+            }
+
+            function setupModuleInteractions(moduleElement) {
+                // Delete button
+                const deleteBtn = moduleElement.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', () => {
+                    moduleElement.remove();
+                    
+                    // Show empty state if no modules left
+                    if (canvasModules.children.length === 0) {
+                        emptyState.style.display = 'flex';
+                    }
+                });
+
+                // Move up button
+                const moveUpBtn = moduleElement.querySelector('.move-up-btn');
+                moveUpBtn.addEventListener('click', () => {
+                    const prev = moduleElement.previousElementSibling;
+                    if (prev) {
+                        canvasModules.insertBefore(moduleElement, prev);
+                    }
+                });
+
+                // Move down button
+                const moveDownBtn = moduleElement.querySelector('.move-down-btn');
+                moveDownBtn.addEventListener('click', () => {
+                    const next = moduleElement.nextElementSibling;
+                    if (next) {
+                        canvasModules.insertBefore(next, moduleElement);
+                    }
+                });
+
+                // Duplicate button
+                const duplicateBtn = moduleElement.querySelector('.duplicate-btn');
+                duplicateBtn.addEventListener('click', () => {
+                    const moduleType = moduleElement.getAttribute('data-module-type');
+                    addModuleToCanvas(moduleType);
+                });
+
+                // Make editable fields work
+                const editableFields = moduleElement.querySelectorAll('[contenteditable="true"]');
+                editableFields.forEach(field => {
+                    field.addEventListener('focus', () => {
+                        if (field.textContent === field.getAttribute('data-placeholder')) {
+                            field.textContent = '';
+                            field.classList.remove('text-gray-400');
+                        }
+                    });
+                    
+                    field.addEventListener('blur', () => {
+                        if (field.textContent.trim() === '') {
+                            field.textContent = field.getAttribute('data-placeholder');
+                            field.classList.add('text-gray-400');
+                        }
+                    });
+                });
+
+                // Setup file upload buttons
+                const uploadButtons = moduleElement.querySelectorAll('.upload-btn');
+                uploadButtons.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const targetId = this.getAttribute('data-target');
+                        const previewArea = document.getElementById(targetId);
+                        
+                        // Simulate file upload
+                        simulateFileUpload(previewArea);
+                    });
+                });
+            }
+
+            function setPreviewMode(mode) {
+                currentPreviewMode = mode;
+                const canvasContent = document.querySelector('.canvas-content');
+                
+                if (mode === 'desktop') {
+                    canvasArea.classList.add('preview-desktop');
+                    canvasArea.classList.remove('preview-mobile');
+                    previewDesktop.classList.add('bg-[#C9B6E4]', 'text-white');
+                    previewDesktop.classList.remove('bg-white');
+                    previewMobile.classList.add('bg-white');
+                    previewMobile.classList.remove('bg-[#A8E6CF]', 'text-white');
+                } else {
+                    canvasArea.classList.add('preview-mobile');
+                    canvasArea.classList.remove('preview-desktop');
+                    previewMobile.classList.add('bg-[#A8E6CF]', 'text-white');
+                    previewMobile.classList.remove('bg-white');
+                    previewDesktop.classList.add('bg-white');
+                    previewDesktop.classList.remove('bg-[#C9B6E4]', 'text-white');
+                }
+            }
+
+            function simulateFileUpload(previewArea) {
+                // Show loading state
+                previewArea.innerHTML = `
+                    <div class="flex items-center justify-center">
+                        <svg class="animate-spin h-8 w-8 text-[#C9B6E4]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                `;
+
+                // After a short delay, show a placeholder image
+                setTimeout(() => {
+                    if (previewArea.id.includes('video')) {
+                        previewArea.innerHTML = `
+                            <div class="bg-gray-100 rounded-lg flex items-center justify-center h-full">
+                                <div class="text-center p-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                    <p class="text-gray-500">Video caricato</p>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // Generate a random placeholder image
+                        const colors = ['#C9B6E4', '#A8E6CF', '#FFD3B6', '#FFAAA5'];
+                        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                        
+                        previewArea.innerHTML = `
+                            <div class="bg-gray-100 rounded-lg flex items-center justify-center h-full" style="background-color: ${randomColor}40;">
+                                <div class="text-center p-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <p class="text-white">Immagine caricata</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }, 800);
+            }
+
+            // Module creation functions
+            function createFullWidthImageModule() {
+                const imageId = `image-${Date.now()}`;
+                return `
+                    <div class="space-y-4">
+                        <div class="mb-3">
+                            <h3 class="text-sm font-medium text-gray-500 mb-1">Titolo</h3>
+                            <div contenteditable="true" data-placeholder="Inserisci il titolo qui" class="p-2 border border-gray-200 rounded-md text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C9B6E4] focus:border-transparent">Inserisci il titolo qui</div>
+                        </div>
+                        <div class="mb-3">
+                            <h3 class="text-sm font-medium text-gray-500 mb-1">Descrizione</h3>
+                            <div contenteditable="true" data-placeholder="Inserisci la descrizione qui" class="p-2 border border-gray-200 rounded-md text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C9B6E4] focus:border-transparent">Inserisci la descrizione qui</div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="text-sm font-medium text-gray-500">Immagine</h3>
+                                <button class="upload-btn px-3 py-1 bg-[#C9B6E4] text-white text-sm rounded-md hover:bg-opacity-80" data-target="${imageId}">
+                                    Upload
+                                </button>
+                            </div>
+                            <div id="${imageId}" class="upload-area h-48 rounded-lg flex items-center justify-center">
+                                <div class="text-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <p class="text-gray-400 text-sm">Clicca su Upload per aggiungere un'immagine</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function createFullWidthVideoModule() {
+                const videoId = `video-${Date.now()}`;
+                return `
+                    <div class="space-y-4">
+                        <div class="mb-3">
+                            <h3 class="text-sm font-medium text-gray-500 mb-1">Titolo</h3>
+                            <div contenteditable="true" data-placeholder="Inserisci il titolo qui" class="p-2 border border-gray-200 rounded-md text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#A8E6CF] focus:border-transparent">Inserisci il titolo qui</div>
+                        </div>
+                        <div class="mb-3">
+                            <h3 class="text-sm font-medium text-gray-500 mb-1">Descrizione</h3>
+                            <div contenteditable="true" data-placeholder="Inserisci la descrizione qui" class="p-2 border border-gray-200 rounded-md text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#A8E6CF] focus:border-transparent">Inserisci la descrizione qui</div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="text-sm font-medium text-gray-500">Video</h3>
+                                <button class="upload-btn px-3 py-1 bg-[#A8E6CF] text-white text-sm rounded-md hover:bg-opacity-80" data-target="${videoId}">
+                                    Upload
+                                </button>
+                            </div>
+                            <div id="${videoId}" class="upload-area h-48 rounded-lg flex items-center justify-center">
+                                <div class="text-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                    <p class="text-gray-400 text-sm">Clicca su Upload per aggiungere un video</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function createSplitImageTextModule() {
+                const imageId = `image-${Date.now()}`;
+                return `
+                    <div class="space-y-4">
+                        <div class="mb-3">
+                            <h3 class="text-sm font-medium text-gray-500 mb-1">Titolo</h3>
+                            <div contenteditable="true" data-placeholder="Inserisci il titolo qui" class="p-2 border border-gray-200 rounded-md text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FFD3B6] focus:border-transparent">Inserisci il titolo qui</div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="text-sm font-medium text-gray-500">Immagine</h3>
+                                    <button class="upload-btn px-3 py-1 bg-[#FFD3B6] text-white text-sm rounded-md hover:bg-opacity-80" data-target="${imageId}">
+                                        Upload
+                                    </button>
+                                </div>
+                                <div id="${imageId}" class="upload-area h-48 rounded-lg flex items-center justify-center">
+                                    <div class="text-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <p class="text-gray-400 text-sm">Clicca su Upload per aggiungere un'immagine</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-medium text-gray-500 mb-1">Testo</h3>
+                                <div contenteditable="true" data-placeholder="Inserisci il testo qui" class="p-2 border border-gray-200 rounded-md text-gray-400 h-48 overflow-y-auto focus:outline-none focus:ring-2 focus:ring-[#FFD3B6] focus:border-transparent">Inserisci il testo qui</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function createFourImagesTextModule() {
+                const imageIds = [
+                    `image-${Date.now()}-1`,
+                    `image-${Date.now()}-2`,
+                    `image-${Date.now()}-3`,
+                    `image-${Date.now()}-4`
+                ];
+                
+                return `
+                    <div class="space-y-4">
+                        <div class="mb-3">
+                            <h3 class="text-sm font-medium text-gray-500 mb-1">Titolo</h3>
+                            <div contenteditable="true" data-placeholder="Inserisci il titolo qui" class="p-2 border border-gray-200 rounded-md text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FFAAA5] focus:border-transparent">Inserisci il titolo qui</div>
+                        </div>
+                        <div class="mb-3">
+                            <h3 class="text-sm font-medium text-gray-500 mb-1">Descrizione</h3>
+                            <div contenteditable="true" data-placeholder="Inserisci la descrizione qui" class="p-2 border border-gray-200 rounded-md text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FFAAA5] focus:border-transparent">Inserisci la descrizione qui</div>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            ${imageIds.map((id, index) => `
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <h3 class="text-xs font-medium text-gray-500">Immagine ${index + 1}</h3>
+                                        <button class="upload-btn px-2 py-1 bg-[#FFAAA5] text-white text-xs rounded-md hover:bg-opacity-80" data-target="${id}">
+                                            Upload
+                                        </button>
+                                    </div>
+                                    <div id="${id}" class="upload-area h-24 rounded-lg flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            function createCarouselModule() {
+                const slideIds = [
+                    `slide-${Date.now()}-1`,
+                    `slide-${Date.now()}-2`,
+                    `slide-${Date.now()}-3`
+                ];
+                
+                return `
+                    <div class="space-y-4">
+                        <div class="mb-3">
+                            <h3 class="text-sm font-medium text-gray-500 mb-1">Titolo Carousel</h3>
+                            <div contenteditable="true" data-placeholder="Inserisci il titolo qui" class="p-2 border border-gray-200 rounded-md text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C9B6E4] focus:border-transparent">Inserisci il titolo qui</div>
+                        </div>
+                        
+                        <div class="border border-gray-200 rounded-lg p-3">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-sm font-medium text-gray-700">Slides</h3>
+                                <button class="add-slide-btn px-3 py-1 bg-[#C9B6E4] text-white text-sm rounded-md hover:bg-opacity-80">
+                                    + Aggiungi Slide
+                                </button>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                ${slideIds.map((id, index) => `
+                                    <div class="slide-item border border-gray-200 rounded-lg p-3">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <h4 class="text-sm font-medium text-gray-600">Slide ${index + 1}</h4>
+                                            <button class="delete-slide-btn p-1 rounded hover:bg-gray-100">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <div>
+                                                <div class="flex justify-between items-center mb-1">
+                                                    <h5 class="text-xs font-medium text-gray-500">Immagine</h5>
+                                                    <button class="upload-btn px-2 py-1 bg-[#C9B6E4] text-white text-xs rounded-md hover:bg-opacity-80" data-target="${id}">
+                                                        Upload
+                                                    </button>
+                                                </div>
+                                                <div id="${id}" class="upload-area h-24 rounded-lg flex items-center justify-center">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h5 class="text-xs font-medium text-gray-500 mb-1">Testo</h5>
+                                                <div contenteditable="true" data-placeholder="Testo della slide" class="p-2 border border-gray-200 rounded-md text-gray-400 h-24 overflow-y-auto text-sm focus:outline-none focus:ring-2 focus:ring-[#C9B6E4] focus:border-transparent">Testo della slide</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function createHotspotImageModule() {
+                const imageId = `hotspot-image-${Date.now()}`;
+                const hotspotIds = [
+                    `hotspot-${Date.now()}-1`,
+                    `hotspot-${Date.now()}-2`
+                ];
+                
+                return `
+                    <div class="space-y-4">
+                        <div class="mb-3">
+                            <h3 class="text-sm font-medium text-gray-500 mb-1">Titolo</h3>
+                            <div contenteditable="true" data-placeholder="Inserisci il titolo qui" class="p-2 border border-gray-200 rounded-md text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#A8E6CF] focus:border-transparent">Inserisci il titolo qui</div>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="text-sm font-medium text-gray-500">Immagine principale</h3>
+                                <button class="upload-btn px-3 py-1 bg-[#A8E6CF] text-white text-sm rounded-md hover:bg-opacity-80" data-target="${imageId}">
+                                    Upload
+                                </button>
+                            </div>
+                            <div id="${imageId}" class="upload-area h-64 rounded-lg flex items-center justify-center relative">
+                                <div class="text-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <p class="text-gray-400 text-sm">Clicca su Upload per aggiungere un'immagine</p>
+                                </div>
+                                
+                                <!-- Hotspots will appear here after image upload -->
+                            </div>
+                        </div>
+                        
+                        <div class="border border-gray-200 rounded-lg p-3">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-sm font-medium text-gray-700">Hotspots</h3>
+                                <button class="add-hotspot-btn px-3 py-1 bg-[#A8E6CF] text-white text-sm rounded-md hover:bg-opacity-80">
+                                    + Aggiungi Hotspot
+                                </button>
+                            </div>
+                            
+                            <div class="space-y-3">
+                                ${hotspotIds.map((id, index) => `
+                                    <div class="hotspot-item border border-gray-200 rounded-lg p-3">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <h4 class="text-sm font-medium text-gray-600">Hotspot ${index + 1}</h4>
+                                            <div class="flex space-x-2">
+                                                <div class="tooltip" data-tooltip="Posizione: trascina il punto sull'immagine">
+                                                    <span class="inline-block w-4 h-4 rounded-full bg-[#A8E6CF]"></span>
+                                                </div>
+                                                <button class="delete-hotspot-btn p-1 rounded hover:bg-gray-100">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="grid grid-cols-1 gap-2">
+                                            <div>
+                                                <h5 class="text-xs font-medium text-gray-500 mb-1">Titolo</h5>
+                                                <div contenteditable="true" data-placeholder="Titolo hotspot" class="p-2 border border-gray-200 rounded-md text-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#A8E6CF] focus:border-transparent">Titolo hotspot</div>
+                                            </div>
+                                            <div>
+                                                <h5 class="text-xs font-medium text-gray-500 mb-1">Descrizione</h5>
+                                                <div contenteditable="true" data-placeholder="Descrizione hotspot" class="p-2 border border-gray-200 rounded-md text-gray-400 h-16 overflow-y-auto text-sm focus:outline-none focus:ring-2 focus:ring-[#A8E6CF] focus:border-transparent">Descrizione hotspot</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function createComparisonTableModule() {
+                return `
+                    <div class="space-y-4">
+                        <div class="mb-3">
+                            <h3 class="text-sm font-medium text-gray-500 mb-1">Titolo Tabella</h3>
+                            <div contenteditable="true" data-placeholder="Inserisci il titolo qui" class="p-2 border border-gray-200 rounded-md text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FFD3B6] focus:border-transparent">Inserisci il titolo qui</div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full border border-gray-200 rounded-lg">
+                                <thead>
+                                    <tr class="bg-gray-50">
+                                        <th class="p-2 border-b border-r border-gray-200">
+                                            <div contenteditable="true" data-placeholder="Caratteristica" class="text-sm font-medium text-gray-700 focus:outline-none">Caratteristica</div>
+                                        </th>
+                                        <th class="p-2 border-b border-r border-gray-200">
+                                            <div contenteditable="true" data-placeholder="Opzione 1" class="text-sm font-medium text-gray-700 focus:outline-none">Opzione 1</div>
+                                        </th>
+                                        <th class="p-2 border-b border-gray-200">
+                                            <div contenteditable="true" data-placeholder="Opzione 2" class="text-sm font-medium text-gray-700 focus:outline-none">Opzione 2</div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="p-2 border-b border-r border-gray-200">
+                                            <div contenteditable="true" data-placeholder="Caratteristica 1" class="text-sm text-gray-600 focus:outline-none">Caratteristica 1</div>
+                                        </td>
+                                        <td class="p-2 border-b border-r border-gray-200">
+                                            <div contenteditable="true" data-placeholder="Valore 1" class="text-sm text-gray-600 focus:outline-none">Valore 1</div>
+                                        </td>
+                                        <td class="p-2 border-b border-gray-200">
+                                            <div contenteditable="true" data-placeholder="Valore 2" class="text-sm text-gray-600 focus:outline-none">Valore 2</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2 border-b border-r border-gray-200">
+                                            <div contenteditable="true" data-placeholder="Caratteristica 2" class="text-sm text-gray-600 focus:outline-none">Caratteristica 2</div>
+                                        </td>
+                                        <td class="p-2 border-b border-r border-gray-200">
+                                            <div contenteditable="true" data-placeholder="Valore 1" class="text-sm text-gray-600 focus:outline-none">Valore 1</div>
+                                        </td>
+                                        <td class="p-2 border-b border-gray-200">
+                                            <div contenteditable="true" data-placeholder="Valore 2" class="text-sm text-gray-600 focus:outline-none">Valore 2</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2 border-r border-gray-200">
+                                            <div contenteditable="true" data-placeholder="Caratteristica 3" class="text-sm text-gray-600 focus:outline-none">Caratteristica 3</div>
+                                        </td>
+                                        <td class="p-2 border-r border-gray-200">
+                                            <div contenteditable="true" data-placeholder="Valore 1" class="text-sm text-gray-600 focus:outline-none">Valore 1</div>
+                                        </td>
+                                        <td class="p-2">
+                                            <div contenteditable="true" data-placeholder="Valore 2" class="text-sm text-gray-600 focus:outline-none">Valore 2</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <button class="add-row-btn px-3 py-1 bg-[#FFD3B6] text-white text-sm rounded-md hover:bg-opacity-80 mr-2">
+                                + Aggiungi Riga
+                            </button>
+                            <button class="add-column-btn px-3 py-1 bg-[#FFD3B6] text-white text-sm rounded-md hover:bg-opacity-80">
+                                + Aggiungi Colonna
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function createFAQModule() {
+                return `
+                    <div class="space-y-4">
+                        <div class="mb-3">
+                            <h3 class="text-sm font-medium text-gray-500 mb-1">Titolo FAQ</h3>
+                            <div contenteditable="true" data-placeholder="Inserisci il titolo qui" class="p-2 border border-gray-200 rounded-md text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FFAAA5] focus:border-transparent">Domande Frequenti</div>
+                        </div>
+                        
+                        <div class="border border-gray-200 rounded-lg p-3">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-sm font-medium text-gray-700">Domande e Risposte</h3>
+                                <button class="add-faq-btn px-3 py-1 bg-[#FFAAA5] text-white text-sm rounded-md hover:bg-opacity-80">
+                                    + Aggiungi FAQ
+                                </button>
+                            </div>
+                            
+                            <div class="space-y-3">
+                                <div class="faq-item border border-gray-200 rounded-lg overflow-hidden">
+                                    <div class="bg-gray-50 p-3 flex justify-between items-center cursor-pointer faq-header">
+                                        <div contenteditable="true" data-placeholder="Domanda 1" class="text-sm font-medium text-gray-700 focus:outline-none">Come funziona questo prodotto?</div>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 transform transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                    <div class="p-3 faq-content">
+                                        <div contenteditable="true" data-placeholder="Risposta 1" class="text-sm text-gray-600 focus:outline-none">Questo prodotto funziona in modo semplice e intuitivo. Basta seguire le istruzioni incluse nella confezione per ottenere i migliori risultati.</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="faq-item border border-gray-200 rounded-lg overflow-hidden">
+                                    <div class="bg-gray-50 p-3 flex justify-between items-center cursor-pointer faq-header">
+                                        <div contenteditable="true" data-placeholder="Domanda 2" class="text-sm font-medium text-gray-700 focus:outline-none">Quali sono le specifiche tecniche?</div>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 transform transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                    <div class="p-3 faq-content hidden">
+                                        <div contenteditable="true" data-placeholder="Risposta 2" class="text-sm text-gray-600 focus:outline-none">Le specifiche tecniche complete sono disponibili nella scheda prodotto. Includono dimensioni, peso, materiali e altre informazioni importanti.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function createExtendedTextImageModule() {
+                const imageId = `image-${Date.now()}`;
+                return `
+                    <div class="space-y-4">
+                        <div class="mb-3">
+                            <h3 class="text-sm font-medium text-gray-500 mb-1">Titolo</h3>
+                            <div contenteditable="true" data-placeholder="Inserisci il titolo qui" class="p-2 border border-gray-200 rounded-md text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C9B6E4] focus:border-transparent">Inserisci il titolo qui</div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-2">
+                                <h3 class="text-sm font-medium text-gray-500 mb-1">Testo Esteso</h3>
+                                <div contenteditable="true" data-placeholder="Inserisci il testo qui" class="p-2 border border-gray-200 rounded-md text-gray-400 h-64 overflow-y-auto focus:outline-none focus:ring-2 focus:ring-[#C9B6E4] focus:border-transparent">
+                                    <p>Inserisci qui il tuo testo esteso. Questo modulo è ideale per contenuti dettagliati che richiedono più spazio.</p>
+                                    <p>Puoi formattare il testo come preferisci, aggiungere paragrafi e strutturare il contenuto in modo chiaro.</p>
+                                    <p>Il testo esteso permette di fornire informazioni complete sul prodotto, caratteristiche, vantaggi e altri dettagli importanti.</p>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="text-sm font-medium text-gray-500">Immagine</h3>
+                                    <button class="upload-btn px-3 py-1 bg-[#C9B6E4] text-white text-sm rounded-md hover:bg-opacity-80" data-target="${imageId}">
+                                        Upload
+                                    </button>
+                                </div>
+                                <div id="${imageId}" class="upload-area h-64 rounded-lg flex items-center justify-center">
+                                    <div class="text-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <p class="text-gray-400 text-sm">Clicca su Upload per aggiungere un'immagine</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function getModuleTitle(moduleType) {
+                const titles = {
+                    'full-width-image': 'Full Width Image',
+                    'full-width-video': 'Full Width Video',
+                    'split-image-text': 'Split Image + Text',
+                    'four-images-text': '4 Images + Text',
+                    'carousel': 'Carousel (Slide)',
+                    'hotspot-image': 'Hotspot Image',
+                    'comparison-table': 'Comparison Table',
+                    'faq': 'FAQ / Q&A',
+                    'extended-text-image': 'Testo Esteso + Immagine'
+                };
+                
+                return titles[moduleType] || 'Modulo';
+            }
+
+            // Initialize with desktop preview mode
+            setPreviewMode('desktop');
+
+            // Add event delegation for FAQ items
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.faq-header')) {
+                    const faqItem = e.target.closest('.faq-item');
+                    const content = faqItem.querySelector('.faq-content');
+                    const arrow = faqItem.querySelector('svg');
+                    
+                    content.classList.toggle('hidden');
+                    arrow.classList.toggle('rotate-180');
+                }
+            });
+        });
+    </script>
+<!-- Cloudinary Upload Script -->
+<script>
+  document.addEventListener("change", function (event) {
+    if (event.target.classList.contains("cloudinary-upload")) {
+      const file = event.target.files[0];
+      const previewId = event.target.getAttribute("data-preview-id");
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", "unsigned_upload");
+
+      fetch("https://api.cloudinary.com/v1_1/dmiens6fk/image/upload", {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (previewId) {
+          document.getElementById(previewId).src = data.secure_url;
+        }
+      })
+      .catch(err => console.error("Errore durante l'upload Cloudinary:", err));
+    }
+  });
+</script>
+
+<script>
+  function cloneModulesForPreview() {
+    const modules = document.querySelectorAll(".module");
+    const previewArea = document.getElementById("previewArea");
+    previewArea.innerHTML = "";
+    modules.forEach(mod => {
+      const clone = mod.cloneNode(true);
+      clone.style.margin = "0";
+      clone.style.padding = "0";
+      clone.style.border = "none";
+      previewArea.appendChild(clone);
+    });
+  }
+
+  function toggleBuilderVisibility(show) {
+    document.querySelectorAll("body > *:not(#previewArea):not(script)").forEach(el => {
+      if (el.id !== "exportPreview") {
+        el.style.display = show ? "" : "none";
+      }
+    });
+  }
+
+  document.getElementById("previewDesktop").addEventListener("click", function () {
+    cloneModulesForPreview();
+    const preview = document.getElementById("previewArea");
+    preview.style.display = "block";
+    preview.style.maxWidth = "1464px";
+    preview.style.width = "100%";
+    preview.style.margin = "0 auto";
+    preview.style.overflowY = "auto";
+    toggleBuilderVisibility(false);
+  });
+
+  document.getElementById("previewMobile").addEventListener("click", function () {
+    cloneModulesForPreview();
+    const preview = document.getElementById("previewArea");
+    preview.style.display = "block";
+    preview.style.maxWidth = "600px";
+    preview.style.width = "100%";
+    preview.style.margin = "0 auto";
+    preview.style.overflowY = "auto";
+    toggleBuilderVisibility(false);
+  });
+
+  document.getElementById("exportPreview").addEventListener("click", function () {
+    const preview = document.getElementById("previewArea");
+    html2canvas(preview).then(canvas => {
+      const link = document.createElement("a");
+      link.download = "anteprima.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("button, div, span").forEach(function (el) {
+      if (el.textContent.trim().toLowerCase() === "upload") {
+        el.addEventListener("click", function () {
+          const previewImg = el.closest(".module")?.querySelector("img");
+          const input = document.createElement("input");
+          input.type = "file";
+          input.accept = "image/*";
+          input.style.display = "none";
+
+          input.addEventListener("change", function () {
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("upload_preset", "unsigned_upload");
+
+            fetch("https://api.cloudinary.com/v1_1/dmiens6fk/image/upload", {
+              method: "POST",
+              body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+              if (previewImg) {
+                previewImg.src = data.secure_url;
+              }
+            })
+            .catch(err => console.error("Errore Cloudinary:", err));
+          });
+
+          document.body.appendChild(input);
+          input.click();
+        });
+      }
+    });
+  });
+</script>
+</body>
+</html>
