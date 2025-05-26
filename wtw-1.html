@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor Moduli Drag & Drop con Cloudinary</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.5.0-beta4/html2canvas.min.js"></script>
+  <style>
+    @keyframes pulse-bg {
+      0% {
+        background-size: 100% 100%;
+      }
+      50% {
+        background-size: 105% 105%;
+      }
+      100% {
+        background-size: 100% 100%;
+      }
+    }
+    
+    body {
+      background: #f8fafc;
+      background-image: url('https://i.ibb.co/938Vs9Fr/jjh.png');
+      background-size: cover;
+      background-attachment: fixed;
+      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      animation: pulse-bg 8s ease-in-out infinite;
+    }
+    .module {
+      transition: all 0.2s;
+    }
+    .module:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    .canvas-area {
+      min-height: 500px;
+      background-color: white;
+      border-radius: 0.5rem;
+    }
+    .preview-container {
+      transition: width 0.3s ease;
+      margin: 0 auto;
+      background-color: white;
+    }
+    .preview-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 50;
+      display: none;
+    }
+    .hotspot {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      background-color: rgba(99, 102, 241, 0.8);
+      border: 2px solid white;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      cursor: move;
+      z-index: 10;
+    }
+    .hotspot-tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: white;
+      border-radius: 0.25rem;
+      padding: 0.5rem;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      width: 150px;
+      display: none;
+      z-index: 20;
+    }
+    .hotspot:hover .hotspot-tooltip {
+      display: block;
+    }
+    .canvas-item {
+      position: relative;
+      border: 1px solid #e5e7eb;
+      margin-bottom: 1rem;
+      background-color: white;
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+    .item-controls {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      display: flex;
+      background-color: rgba(255, 255, 255, 0.9);
+      border-radius: 0.25rem;
+      padding: 0.25rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .canvas-item:hover .item-controls {
+      opacity: 1;
+    }
+    .image-preview img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    .app-header {
+      background: linear-gradient(to right, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+      backdrop-filter: blur(5px);
+      border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+    }
+    .logo-container {
+      max-width: 600px; /* Raddoppiato da 300px a 600px */
+    }
+    .add-module-btn {
+      cursor: pointer;
+    }
+    .page-title {
+      text-align: center;
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #4f46e5;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+      margin: 1.5rem 0;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      backdrop-filter: blur(5px);
+    }
+  </style>
+</head>
+<body class="p-4">
+  <!-- Header con logo -->
+  <header class="app-header fixed top-0 left-0 right-0 z-40 px-4 py-3 shadow-sm">
+    <div class="container mx-auto flex justify-between items-center">
+      <div class="logo-container">
+        <img src="https://i.ibb.co/1YpRPzJj/hjhhjjk.png" alt="Logo" class="h-40"> <!-- Raddoppiato da h-20 a h-40 -->
+      </div>
+      <div class="text-indigo-600 font-medium">
+        Editor Moduli
+      </div>
+    </div>
+  </header>
+
+  <div class="container mx-auto px-4 py-8 mt-40"> <!-- Aumentato il margine top per il logo più grande -->
+    <!-- Titolo principale -->
+    <div class="page-title">
+      A++ Content Amazon Viewer
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+      <div class="flex flex-col md:flex-row gap-6">
+        <!-- Sidebar con moduli -->
+        <div class="w-full md:w-1/4 bg-gray-50 rounded-lg shadow-sm p-4 border border-gray-100">
+          <h2 class="text-xl font-semibold mb-4 text-indigo-600">Moduli Disponibili</h2>
+          <div id="modules-container" class="space-y-3">
+            <!-- Modulo immagine full-width -->
+            <div class="module bg-white p-3 rounded border border-gray-200 shadow-sm" data-module-type="full-width-image">
+              <div class="flex justify-between items-center">
+                <span class="font-medium">Immagine Full-width</span>
+                <button class="add-module-btn text-gray-500 hover:text-indigo-600 p-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+              <div class="mt-2 h-16 bg-gray-100 flex items-center justify-center rounded">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </div>
+            
+            <!-- Modulo split immagine/testo -->
+            <div class="module bg-white p-3 rounded border border-gray-200 shadow-sm" data-module-type="split-image-text">
+              <div class="flex justify-between items-center">
+                <span class="font-medium">Split Immagine/Testo</span>
+                <button class="add-module-btn text-gray-500 hover:text-indigo-600 p-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+              <div class="mt-2 h-16 bg-gray-100 flex rounded">
+                <div class="w-1/2 flex items-center justify-center border-r border-white">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div class="w-1/2 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Modulo 4 immagini -->
+            <div class="module bg-white p-3 rounded border border-gray-200 shadow-sm" data-module-type="4-images">
+              <div class="flex justify-between items-center">
+                <span class="font-medium">4 Immagini</span>
+                <button class="add-module-btn text-gray-500 hover:text-indigo-600 p-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+              <div class="mt-2 h-16 bg-gray-100 grid grid-cols-2 gap-1 p-1 rounded">
+                <div class="bg-gray-200 rounded flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div class="bg-gray-200 rounded flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div class="bg-gray-200 rounded flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div class="bg-gray-200 rounded flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Modulo hotspot -->
+            <div class="module bg-white p-3 rounded border border-gray-200 shadow-sm" data-module-type="hotspot">
+              <div class="flex justify-between items-center">
+                <span class="font-medium">Hotspot</span>
+                <button class="add-module-btn text-gray-500 hover:text-indigo-600 p-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+              <div class="mt-2 h-16 bg-gray-100 flex items-center justify-center rounded relative">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <div class="absolute top-2 left-2">
+                  <div class="bg-indigo-500 rounded-full h-4 w-4 animate-pulse"></div>
+                </div>
+                <div class="absolute bottom-2 right-2">
+                  <div class="bg-indigo-500 rounded-full h-4 w-4 animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+            <p class="text-sm text-blue-700">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Clicca sul pulsante <strong>+</strong> per aggiungere un modulo all'editor.
+            </p>
+          </div>
+        </div>
+        
+        <!-- Area di lavoro principale -->
+        <div class="w-full md:w-3/4">
+          <!-- Controlli anteprima -->
+          <div class="bg-white rounded-lg shadow-sm p-4 mb-6 border border-gray-100">
+            <div class="flex flex-wrap justify-between items-center">
+              <h2 class="text-xl font-semibold text-indigo-600">Editor</h2>
+              <div class="flex space-x-3 mt-2 sm:mt-0">
+                <button id="show-preview" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  Anteprima
+                </button>
+                <button id="export-png" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Esporta PNG
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Canvas per l'anteprima -->
+          <div class="canvas-area p-4 shadow-sm border border-gray-100" id="canvas">
+            <div class="flex items-center justify-center h-64 border-2 border-dashed border-gray-300 rounded-lg" id="empty-canvas">
+              <div class="text-center p-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <h3 class="text-lg font-medium text-gray-600">Area di lavoro</h3>
+                <p class="text-gray-500 mt-1">Clicca sul pulsante "+" di un modulo per aggiungerlo qui</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal per l'anteprima -->
+  <div id="preview-modal" class="preview-modal">
+    <div class="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+      <div class="bg-white p-4 flex justify-between items-center border-b">
+        <h3 class="text-lg font-medium">Anteprima</h3>
+        <div class="flex space-x-3">
+          <button id="desktop-preview" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Desktop
+          </button>
+          <button id="mobile-preview" class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            Mobile
+          </button>
+          <button id="close-preview" class="text-gray-500 hover:text-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="p-4 overflow-auto max-h-[calc(90vh-80px)]">
+        <div id="preview-container" class="preview-container w-full max-w-[1200px]">
+          <div id="preview-content"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const canvas = document.getElementById('canvas');
+      const emptyCanvas = document.getElementById('empty-canvas');
+      const previewModal = document.getElementById('preview-modal');
+      const previewContent = document.getElementById('preview-content');
+      const previewContainer = document.getElementById('preview-container');
+      const showPreviewBtn = document.getElementById('show-preview');
+      const closePreviewBtn = document.getElementById('close-preview');
+      const desktopPreviewBtn = document.getElementById('desktop-preview');
+      const mobilePreviewBtn = document.getElementById('mobile-preview');
+      const exportPngBtn = document.getElementById('export-png');
+      
+      // Contatore per ID unici
+      let idCounter = 1;
+      
+      // Aggiungi moduli al canvas quando si clicca sul pulsante +
+      document.querySelectorAll('.add-module-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const moduleType = this.closest('.module').getAttribute('data-module-type');
+          addModuleToCanvas(moduleType);
+        });
+      });
+      
+      // Funzione per aggiungere un modulo al canvas
+      function addModuleToCanvas(moduleType) {
+        // Rimuovi il messaggio vuoto se presente
+        if (emptyCanvas && emptyCanvas.parentNode === canvas) {
+          canvas.removeChild(emptyCanvas);
+        }
+        
+        // Crea un nuovo elemento canvas-item
+        const canvasItem = document.createElement('div');
+        canvasItem.className = 'canvas-item';
+        canvasItem.setAttribute('data-module-type', moduleType);
+        
+        // ID unico per questo modulo
+        const moduleId = `module-${idCounter++}`;
+        canvasItem.id = moduleId;
+        
+        // Contenuto in base al tipo di modulo
+        let moduleContent = '';
+        
+        switch(moduleType) {
+          case 'full-width-image':
+            const fullWidthPreviewId = `preview-${moduleId}`;
+            moduleContent = `
+              <div class="p-4">
+                <h3 class="text-lg font-medium mb-2">Immagine Full-width</h3>
+                <input type="text" class="w-full p-2 border border-gray-300 rounded mb-3" placeholder="Titolo">
+                <textarea class="w-full p-2 border border-gray-300 rounded mb-3" rows="3" placeholder="Descrizione"></textarea>
+                <div class="bg-gray-100 p-4 rounded mb-3">
+                  <div id="${fullWidthPreviewId}" class="image-preview min-h-[200px] flex items-center justify-center">
+                    <p class="text-gray-500">Nessuna immagine caricata</p>
+                  </div>
+                </div>
+                <button class="upload-image-btn bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700" data-target="${fullWidthPreviewId}">
+                  Carica immagine
+                </button>
+              </div>
+            `;
+            break;
+            
+          case 'split-image-text':
+            const splitPreviewId = `preview-${moduleId}`;
+            moduleContent = `
+              <div class="p-4">
+                <h3 class="text-lg font-medium mb-2">Split Immagine/Testo</h3>
+                <div class="flex flex-col md:flex-row gap-4">
+                  <div class="w-full md:w-1/2">
+                    <div class="bg-gray-100 p-4 rounded mb-3">
+                      <div id="${splitPreviewId}" class="image-preview min-h-[200px] flex items-center justify-center">
+                        <p class="text-gray-500">Nessuna immagine caricata</p>
+                      </div>
+                    </div>
+                    <button class="upload-image-btn bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 w-full" data-target="${splitPreviewId}">
+                      Carica immagine
+                    </button>
+                  </div>
+                  <div class="w-full md:w-1/2">
+                    <input type="text" class="w-full p-2 border border-gray-300 rounded mb-3" placeholder="Titolo">
+                    <textarea class="w-full p-2 border border-gray-300 rounded h-[200px]" placeholder="Testo"></textarea>
+                  </div>
+                </div>
+              </div>
+            `;
+            break;
+            
+          case '4-images':
+            let fourImagesContent = `
+              <div class="p-4">
+                <h3 class="text-lg font-medium mb-2">4 Immagini</h3>
+                <input type="text" class="w-full p-2 border border-gray-300 rounded mb-3" placeholder="Titolo sezione">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            `;
+            
+            for (let i = 0; i < 4; i++) {
+              const previewId = `preview-${moduleId}-${i}`;
+              fourImagesContent += `
+                <div>
+                  <div class="bg-gray-100 p-2 rounded mb-2">
+                    <div id="${previewId}" class="image-preview aspect-square flex items-center justify-center">
+                      <p class="text-gray-500">Immagine ${i+1}</p>
+                    </div>
+                  </div>
+                  <input type="text" class="w-full p-2 border border-gray-300 rounded mb-2" placeholder="Titolo">
+                  <textarea class="w-full p-2 border border-gray-300 rounded mb-2" placeholder="Descrizione" rows="2"></textarea>
+                  <button class="upload-image-btn bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 w-full text-sm" data-target="${previewId}">
+                    Carica immagine
+                  </button>
+                </div>
+              `;
+            }
+            
+            fourImagesContent += `
+                </div>
+              </div>
+            `;
+            
+            moduleContent = fourImagesContent;
+            break;
+            
+          case 'hotspot':
+            const hotspotPreviewId = `preview-${moduleId}`;
+            moduleContent = `
+              <div class="p-4">
+                <h3 class="text-lg font-medium mb-2">Hotspot</h3>
+                <input type="text" class="w-full p-2 border border-gray-300 rounded mb-3" placeholder="Titolo">
+                <div class="bg-gray-100 p-4 rounded mb-3 relative hotspot-container" style="min-height: 300px;">
+                  <div id="${hotspotPreviewId}" class="image-preview min-h-[300px] flex items-center justify-center">
+                    <p class="text-gray-500">Carica un'immagine per aggiungere hotspot</p>
+                  </div>
+                </div>
+                <div class="flex justify-between">
+                  <button class="upload-image-btn bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700" data-target="${hotspotPreviewId}">
+                    Carica immagine
+                  </button>
+                  <button class="add-hotspot-btn bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    Aggiungi hotspot
+                  </button>
+                </div>
+                <div class="hotspot-info mt-4 hidden">
+                  <h4 class="font-medium mb-2">Informazioni Hotspot</h4>
+                  <div class="hotspot-list space-y-2">
+                    <!-- Gli hotspot verranno aggiunti qui dinamicamente -->
+                  </div>
+                </div>
+              </div>
+            `;
+            break;
+        }
+        
+        // Aggiungi i controlli per l'elemento
+        const controls = `
+          <div class="item-controls">
+            <button class="duplicate-btn text-gray-500 hover:text-indigo-600 p-1 mx-1" title="Duplica">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </button>
+            <button class="move-up-btn text-gray-500 hover:text-indigo-600 p-1 mx-1" title="Sposta su">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+              </svg>
+            </button>
+            <button class="move-down-btn text-gray-500 hover:text-indigo-600 p-1 mx-1" title="Sposta giù">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <button class="delete-btn text-red-500 hover:text-red-600 p-1 mx-1" title="Elimina">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        `;
+        
+        // Imposta il contenuto dell'elemento
+        canvasItem.innerHTML = moduleContent + controls;
+        
+        // Aggiungi l'elemento al canvas
+        canvas.appendChild(canvasItem);
+        
+        // Aggiungi gestori eventi per i controlli
+        setupModuleControls(canvasItem);
+        
+        // Configura funzionalità specifiche per il tipo di modulo
+        if (moduleType === 'hotspot') {
+          setupHotspotFunctionality(canvasItem);
+        }
+      }
+      
+      // Configura i controlli per un modulo
+      function setupModuleControls(moduleElement) {
+        // Pulsante duplica
+        moduleElement.querySelector('.duplicate-btn').addEventListener('click', function() {
+          const clone = moduleElement.cloneNode(true);
+          clone.id = `module-${idCounter++}`;
+          
+          // Aggiorna gli ID degli elementi interni
+          const previewElements = clone.querySelectorAll('.image-preview');
+          previewElements.forEach((preview, index) => {
+            const newPreviewId = `preview-${clone.id}${index > 0 ? '-' + index : ''}`;
+            preview.id = newPreviewId;
+            
+            // Aggiorna anche il riferimento nel pulsante di upload
+            const uploadBtn = clone.querySelector(`[data-target="${preview.id}"]`);
+            if (uploadBtn) {
+              uploadBtn.setAttribute('data-target', newPreviewId);
+            }
+          });
+          
+          canvas.appendChild(clone);
+          setupModuleControls(clone);
+          
+          // Riconfigura funzionalità specifiche
+          const moduleType = clone.getAttribute('data-module-type');
+          if (moduleType === 'hotspot') {
+            setupHotspotFunctionality(clone);
+          }
+        });
+        
+        // Pulsante sposta su
+        moduleElement.querySelector('.move-up-btn').addEventListener('click', function() {
+          const prev = moduleElement.previousElementSibling;
+          if (prev) {
+            canvas.insertBefore(moduleElement, prev);
+          }
+        });
+        
+        // Pulsante sposta giù
+        moduleElement.querySelector('.move-down-btn').addEventListener('click', function() {
+          const next = moduleElement.nextElementSibling;
+          if (next) {
+            canvas.insertBefore(next, moduleElement);
+          }
+        });
+        
+        // Pulsante elimina
+        moduleElement.querySelector('.delete-btn').addEventListener('click', function() {
+          canvas.removeChild(moduleElement);
+          
+          // Se non ci sono più elementi, mostra il messaggio vuoto
+          if (canvas.children.length === 0) {
+            canvas.appendChild(emptyCanvas);
+          }
+        });
+      }
+      
+      // Configura la funzionalità degli hotspot
+      function setupHotspotFunctionality(moduleElement) {
+        const addHotspotBtn = moduleElement.querySelector('.add-hotspot-btn');
+        const hotspotContainer = moduleElement.querySelector('.hotspot-container');
+        const hotspotList = moduleElement.querySelector('.hotspot-list');
+        let hotspotCounter = 0;
+        
+        addHotspotBtn.addEventListener('click', function() {
+          // Verifica se è stata caricata un'immagine
+          const imagePreview = hotspotContainer.querySelector('.image-preview');
+          if (imagePreview && imagePreview.querySelector('img')) {
+            // Crea un nuovo hotspot
+            const hotspotId = `hotspot-${moduleElement.id}-${hotspotCounter++}`;
+            const hotspot = document.createElement('div');
+            hotspot.className = 'hotspot';
+            hotspot.id = hotspotId;
+            hotspot.setAttribute('data-title', 'Titolo hotspot');
+            hotspot.setAttribute('data-description', 'Descrizione hotspot');
+            
+            // Posiziona l'hotspot al centro del container
+            hotspot.style.left = '50%';
+            hotspot.style.top = '50%';
+            
+            // Aggiungi tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'hotspot-tooltip';
+            tooltip.innerHTML = `
+              <h4 class="font-bold">Titolo hotspot</h4>
+              <p>Descrizione hotspot</p>
+            `;
+            hotspot.appendChild(tooltip);
+            
+            hotspotContainer.appendChild(hotspot);
+            
+            // Rendi l'hotspot trascinabile
+            makeHotspotDraggable(hotspot, hotspotContainer);
+            
+            // Aggiungi l'hotspot alla lista
+            const hotspotItem = document.createElement('div');
+            hotspotItem.className = 'bg-gray-50 p-2 rounded border border-gray-200';
+            hotspotItem.setAttribute('data-hotspot-id', hotspotId);
+            hotspotItem.innerHTML = `
+              <div class="flex justify-between items-center mb-2">
+                <span class="font-medium">Hotspot #${hotspotCounter}</span>
+                <button class="delete-hotspot-btn text-red-500 hover:text-red-600 p-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+              <input type="text" class="w-full p-2 border border-gray-300 rounded mb-2 hotspot-title" placeholder="Titolo" value="Titolo hotspot">
+              <textarea class="w-full p-2 border border-gray-300 rounded hotspot-description" placeholder="Descrizione" rows="2">Descrizione hotspot</textarea>
+            `;
+            
+            hotspotList.appendChild(hotspotItem);
+            
+            // Aggiungi evento per eliminare l'hotspot
+            hotspotItem.querySelector('.delete-hotspot-btn').addEventListener('click', function() {
+              const hotspotId = hotspotItem.getAttribute('data-hotspot-id');
+              const hotspot = document.getElementById(hotspotId);
+              if (hotspot) {
+                hotspotContainer.removeChild(hotspot);
+              }
+              hotspotList.removeChild(hotspotItem);
+            });
+            
+            // Aggiungi eventi per aggiornare il tooltip quando si modificano i campi
+            const titleInput = hotspotItem.querySelector('.hotspot-title');
+            const descInput = hotspotItem.querySelector('.hotspot-description');
+            
+            titleInput.addEventListener('input', function() {
+              hotspot.setAttribute('data-title', this.value);
+              tooltip.querySelector('h4').textContent = this.value;
+            });
+            
+            descInput.addEventListener('input', function() {
+              hotspot.setAttribute('data-description', this.value);
+              tooltip.querySelector('p').textContent = this.value;
+            });
+            
+            // Mostra la sezione info hotspot
+            moduleElement.querySelector('.hotspot-info').classList.remove('hidden');
+          } else {
+            alert('Carica prima un\'immagine per aggiungere hotspot');
+          }
+        });
+      }
+      
+      // Rendi un hotspot trascinabile
+      function makeHotspotDraggable(hotspot, container) {
+        let isDragging = false;
+        let offsetX, offsetY;
+        
+        hotspot.addEventListener('mousedown', function(e) {
+          isDragging = true;
+          
+          // Calcola l'offset rispetto al centro dell'hotspot
+          const rect = hotspot.getBoundingClientRect();
+          offsetX = e.clientX - rect.left - rect.width / 2;
+          offsetY = e.clientY - rect.top - rect.height / 2;
+          
+          // Previeni il trascinamento dell'immagine
+          e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', function(e) {
+          if (!isDragging) return;
+          
+          const containerRect = container.getBoundingClientRect();
+          
+          // Calcola la nuova posizione relativa al container
+          let left = ((e.clientX - containerRect.left - offsetX) / containerRect.width) * 100;
+          let top = ((e.clientY - containerRect.top - offsetY) / containerRect.height) * 100;
+          
+          // Limita la posizione all'interno del container
+          left = Math.max(0, Math.min(100, left));
+          top = Math.max(0, Math.min(100, top));
+          
+          // Aggiorna la posizione dell'hotspot
+          hotspot.style.left = left + '%';
+          hotspot.style.top = top + '%';
+        });
+        
+        document.addEventListener('mouseup', function() {
+          isDragging = false;
+        });
+      }
+      
+      // Mostra l'anteprima
+      showPreviewBtn.addEventListener('click', function() {
+        generatePreview();
+        previewModal.style.display = 'flex';
+      });
+      
+      // Chiudi l'anteprima
+      closePreviewBtn.addEventListener('click', function() {
+        previewModal.style.display = 'none';
+      });
+      
+      // Cambia modalità anteprima desktop
+      desktopPreviewBtn.addEventListener('click', function() {
+        previewContainer.style.width = '100%';
+        previewContainer.style.maxWidth = '1200px';
+        desktopPreviewBtn.classList.remove('bg-gray-200', 'text-gray-700');
+        desktopPreviewBtn.classList.add('bg-indigo-600', 'text-white');
+        mobilePreviewBtn.classList.remove('bg-indigo-600', 'text-white');
+        mobilePreviewBtn.classList.add('bg-gray-200', 'text-gray-700');
+      });
+      
+      // Cambia modalità anteprima mobile
+      mobilePreviewBtn.addEventListener('click', function() {
+        previewContainer.style.width = '375px';
+        previewContainer.style.maxWidth = '375px';
+        mobilePreviewBtn.classList.remove('bg-gray-200', 'text-gray-700');
+        mobilePreviewBtn.classList.add('bg-indigo-600', 'text-white');
+        desktopPreviewBtn.classList.remove('bg-indigo-600', 'text-white');
+        desktopPreviewBtn.classList.add('bg-gray-200', 'text-gray-700');
+      });
+      
+      // Esporta come PNG
+      exportPngBtn.addEventListener('click', function() {
+        // Genera l'anteprima se non è già visibile
+        if (previewModal.style.display !== 'flex') {
+          generatePreview();
+          previewModal.style.display = 'flex';
+          
+          // Attendi che il DOM sia aggiornato prima di generare l'immagine
+          setTimeout(function() {
+            html2canvas(document.getElementById('preview-content')).then(function(canvas) {
+              const link = document.createElement('a');
+              link.download = 'anteprima.png';
+              link.href = canvas.toDataURL('image/png');
+              link.click();
+            });
+          }, 500);
+        } else {
+          html2canvas(document.getElementById('preview-content')).then(function(canvas) {
+            const link = document.createElement('a');
+            link.download = 'anteprima.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+          });
+        }
+      });
+      
+      // Genera l'anteprima
+      function generatePreview() {
+        previewContent.innerHTML = '';
+        
+        // Ottieni tutti gli elementi del canvas
+        const canvasItems = document.querySelectorAll('.canvas-item');
+        
+        if (canvasItems.length === 0) {
+          previewContent.innerHTML = '<div class="p-8 text-center text-gray-500">Nessun modulo aggiunto al canvas</div>';
+          return;
+        }
+        
+        // Per ogni elemento del canvas, crea una versione per l'anteprima
+        canvasItems.forEach(item => {
+          const moduleType = item.getAttribute('data-module-type');
+          const previewItem = document.createElement('div');
+          previewItem.className = 'preview-item';
+          
+          // Copia il contenuto rilevante dall'elemento del canvas
+          switch(moduleType) {
+            case 'full-width-image':
+              const fullWidthTitle = item.querySelector('input[placeholder="Titolo"]').value || 'Titolo';
+              const fullWidthDesc = item.querySelector('textarea').value || 'Descrizione';
+              const fullWidthImg = item.querySelector('.image-preview').innerHTML;
+              
+              previewItem.innerHTML = `
+                <div class="w-full">
+                  <div class="image-container w-full">
+                    ${fullWidthImg.includes('img') ? fullWidthImg : '<div class="bg-gray-200 w-full h-[300px] flex items-center justify-center"><p>Immagine non caricata</p></div>'}
+                  </div>
+                  <div class="p-4">
+                    <h2 class="text-2xl font-bold mb-2">${fullWidthTitle}</h2>
+                    <p>${fullWidthDesc}</p>
+                  </div>
+                </div>
+              `;
+              break;
+              
+            case 'split-image-text':
+              const splitTitle = item.querySelector('input[placeholder="Titolo"]').value || 'Titolo';
+              const splitText = item.querySelector('textarea').value || 'Testo';
+              const splitImg = item.querySelector('.image-preview').innerHTML;
+              
+              previewItem.innerHTML = `
+                <div class="w-full flex flex-col md:flex-row">
+                  <div class="w-full md:w-1/2">
+                    ${splitImg.includes('img') ? splitImg : '<div class="bg-gray-200 w-full h-[300px] flex items-center justify-center"><p>Immagine non caricata</p></div>'}
+                  </div>
+                  <div class="w-full md:w-1/2 p-4">
+                    <h2 class="text-2xl font-bold mb-2">${splitTitle}</h2>
+                    <p>${splitText}</p>
+                  </div>
+                </div>
+              `;
+              break;
+              
+            case '4-images':
+              const fourImgTitle = item.querySelector('input[placeholder="Titolo sezione"]').value || 'Titolo sezione';
+              const imgContainers = item.querySelectorAll('.image-preview');
+              const imgTitles = item.querySelectorAll('input[placeholder="Titolo"]');
+              const imgDescs = item.querySelectorAll('textarea[placeholder="Descrizione"]');
+              
+              let imagesHTML = '';
+              for (let i = 0; i < 4; i++) {
+                const imgContent = imgContainers[i].innerHTML;
+                const imgTitle = imgTitles[i].value || `Immagine ${i+1}`;
+                const imgDesc = imgDescs[i].value || `Descrizione ${i+1}`;
+                
+                imagesHTML += `
+                  <div class="w-full sm:w-1/2 md:w-1/4 p-2">
+                    <div class="bg-white rounded overflow-hidden shadow">
+                      ${imgContent.includes('img') ? imgContent : '<div class="bg-gray-200 aspect-square flex items-center justify-center"><p>Immagine non caricata</p></div>'}
+                      <div class="p-3">
+                        <h3 class="font-bold">${imgTitle}</h3>
+                        <p class="text-sm">${imgDesc}</p>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }
+              
+              previewItem.innerHTML = `
+                <div class="w-full">
+                  <h2 class="text-2xl font-bold p-4">${fourImgTitle}</h2>
+                  <div class="flex flex-wrap">
+                    ${imagesHTML}
+                  </div>
+                </div>
+              `;
+              break;
+              
+            case 'hotspot':
+              const hotspotTitle = item.querySelector('input[placeholder="Titolo"]').value || 'Titolo';
+              const hotspotContainer = item.querySelector('.hotspot-container');
+              const hotspotImg = hotspotContainer.querySelector('.image-preview').innerHTML;
+              const hotspots = hotspotContainer.querySelectorAll('.hotspot');
+              
+              let hotspotsHTML = '';
+              hotspots.forEach(hotspot => {
+                const left = hotspot.style.left;
+                const top = hotspot.style.top;
+                const title = hotspot.getAttribute('data-title') || 'Titolo hotspot';
+                const description = hotspot.getAttribute('data-description') || 'Descrizione hotspot';
+                
+                hotspotsHTML += `
+                  <div class="hotspot" style="left: ${left}; top: ${top};">
+                    <div class="hotspot-tooltip">
+                      <h4 class="font-bold">${title}</h4>
+                      <p>${description}</p>
+                    </div>
+                  </div>
+                `;
+              });
+              
+              previewItem.innerHTML = `
+                <div class="w-full">
+                  <h2 class="text-2xl font-bold p-4">${hotspotTitle}</h2>
+                  <div class="relative">
+                    ${hotspotImg.includes('img') ? hotspotImg : '<div class="bg-gray-200 w-full h-[300px] flex items-center justify-center"><p>Immagine non caricata</p></div>'}
+                    ${hotspotsHTML}
+                  </div>
+                </div>
+              `;
+              break;
+          }
+          
+          previewContent.appendChild(previewItem);
+        });
+        
+        // Aggiungi stili CSS specifici per l'anteprima
+        const previewStyles = document.createElement('style');
+        previewStyles.textContent = `
+          .preview-item {
+            margin-bottom: 0;
+          }
+          .preview-item img {
+            display: block;
+            width: 100%;
+          }
+          .hotspot {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: rgba(99, 102, 241, 0.8);
+            border: 2px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            z-index: 10;
+          }
+          .hotspot-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: white;
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            width: 150px;
+            display: none;
+            z-index: 20;
+          }
+          .hotspot:hover .hotspot-tooltip {
+            display: block;
+          }
+        `;
+        previewContent.appendChild(previewStyles);
+      }
+    });
+    
+    // Codice JS Cloudinary upload integrato
+    document.addEventListener("DOMContentLoaded",function(){
+      document.body.addEventListener("click",function(e){
+        const el=e.target;
+        if(el.tagName==="BUTTON"&&el.hasAttribute("data-target")){
+          const targetId=el.getAttribute("data-target");
+          const preview=document.getElementById(targetId);
+          if(!preview)return;
+          
+          const module=el.closest(".module")||el.closest("[data-module-type]");
+          const type=module?.getAttribute("data-module-type")||"";
+          const isVideo=type.includes("video");
+          let cloudPath=isVideo?"video":"image",resize="";
+          
+          if(!isVideo){
+            if(type.includes("full-width"))resize="w_1464,h_600,c_fill";
+            else if(type.includes("split"))resize="w_650,h_650,c_fill";
+            else if(type.includes("4-images"))resize="w_300,h_300,c_fill";
+            else if(type.includes("carousel")||type.includes("hotspot"))resize="w_970,h_600,c_fill";
+            else if(type.includes("icon")||type.includes("table"))resize="w_150,h_150,c_fill";
+          }
+          
+          const input=document.createElement("input");
+          input.type="file";
+          input.accept=isVideo?"video/*":"image/*";
+          input.style.display="none";
+          
+          input.onchange=function(){
+            const file=input.files[0],data=new FormData();
+            data.append("file",file);
+            data.append("upload_preset","unsigned_upload");
+            preview.innerHTML="Caricamento...";
+            
+            fetch(`https://api.cloudinary.com/v1_1/dmiens6fk/${cloudPath}/upload`,{method:"POST",body:data})
+              .then(res=>res.json())
+              .then(resp=>{
+                preview.innerHTML="";
+                const url=resize?resp.secure_url.replace("/upload/",`/upload/${resize}/`):resp.secure_url;
+                
+                if(isVideo){
+                  const v=document.createElement("video");
+                  v.src=url;
+                  v.controls=true;
+                  v.style.width="100%";
+                  preview.appendChild(v);
+                } else {
+                  const i=document.createElement("img");
+                  i.src=url;
+                  i.style.maxWidth="100%";
+                  preview.appendChild(i);
+                }
+              })
+              .catch(err=>{
+                preview.innerHTML="Errore";
+                console.error(err);
+              });
+          };
+          
+          document.body.appendChild(input);
+          input.click();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
